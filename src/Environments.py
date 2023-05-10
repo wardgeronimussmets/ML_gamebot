@@ -1,12 +1,18 @@
 from gym import Env
-from gym.spaces import Box,MultiBinary,Tuple,MultiDiscrete
+from gym.spaces import Box,Tuple,MultiDiscrete
 import numpy as np
+from mss import mss
+import cv2
+
 
 class GameEnv(Env):
     def __init__(self) -> None:
         super().__init__()
         #setup spaces
-        self.observation_space = Box(low=0,high=255,shape=(1,83,100),dtype=np.uint8)
+        self.observation_shape_channel = (1,200,400)
+        self.observation_shape = (self.observation_shape_channel[2],self.observation_shape_channel[1])
+        self.observation_space = Box(low=0,high=255,shape=self.observation_shape_channel,dtype=np.uint8)
+        
         #action space:
         #   Discretes:
         #       0 -> No op
@@ -26,6 +32,10 @@ class GameEnv(Env):
             MultiDiscrete([4,2]),
             Box(low=-1.0,high=1.0,shape=(3,))           
         ))
+        self.cap = mss()
+        self.monitor = self.cap.monitors[1]
+        
+
         
     def step(self, action):
         pass
@@ -37,7 +47,16 @@ class GameEnv(Env):
         pass
     
     def get_observation(self):
-        pass
+        raw = np.array(self.cap.grab(self.monitor))[:,:,:3]
+        
+        #Grayscale
+        gray = cv2.cvtColor(raw,cv2.COLOR_BGR2GRAY)
+        #Resize
+        resized = cv2.resize(gray,self.observation_shape)
+        #Add channels first, this is what stable baselines wants
+        channel = np.reshape(resized,self.observation_shape_channel)
+        
+        return channel
     
     
     def get_done(self):
