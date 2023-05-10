@@ -3,6 +3,7 @@ from gym.spaces import Box,Tuple,MultiDiscrete
 import numpy as np
 from mss import mss
 import cv2
+import math
 
 
 class GameEnv(Env):
@@ -34,8 +35,17 @@ class GameEnv(Env):
         ))
         self.cap = mss()
         self.monitor = self.cap.monitors[1]
+        self.level_winner_region = self.get_level_winner_region()
         
-
+    def get_level_winner_region(self):
+        monitor = self.monitor
+        # Capture a bbox using percent values
+        left = monitor["left"] + monitor["width"] * 0.4  # n-% from the left
+        top = monitor["top"] + monitor["height"] * 0.3  # n-% from the top
+        right = left + 0.25*monitor['width']  # n-px width
+        lower = top + 0.1*monitor["height"]  # n-px height
+        bbox = (math.floor(left), math.floor(top), math.floor(right), math.floor(lower))
+        return bbox
         
     def step(self, action):
         pass
@@ -59,5 +69,6 @@ class GameEnv(Env):
         return channel
     
     
-    def get_done(self):
-        pass
+    def get_level_winner(self):
+        grab = self.cap.grab(self.level_winner_region)
+        return grab

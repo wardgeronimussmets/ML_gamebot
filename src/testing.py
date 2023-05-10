@@ -10,11 +10,18 @@ def test_samples(env):
     print(obs.shape)
     plt.imshow(obs)
     plt.show()
+    
+def test_winner(enb):
+    plt.figure()
+    grab = enb.get_level_winner()
+    plt.imshow(grab)
+    plt.show()
 
 if __name__ == "__main__":
     print("starting")
     env = GameEnv()
-    test_samples(env)
-
+    # test_samples(env)
+    input()
+    test_winner(env)
     
     
