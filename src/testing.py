@@ -29,6 +29,6 @@ if __name__ == "__main__":
     # input()
     while True:
         time.sleep(1)
-        env.get_level_winner()
+        env.get_level_winner_with_tesseract()
     
     

@@ -4,16 +4,22 @@ import numpy as np
 from mss import mss
 import cv2
 import math
+import time
+import pytesseract
+import ImageDisplay
 
-TITLE_COLOR_THRESHOLD = 50
-PIXEL_COLOR_DIFF_THRESHOLD = 50
+TITLE_COLOR_THRESHOLD = 1500
+PIXEL_COLOR_DIFF_THRESHOLD = 0.3 #factor that it can deviate from the maximum
+WINNER_CHECKER_INTERVAL = 1.8
+
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 
 class GameEnv(Env):
     def __init__(self) -> None:
         super().__init__()
         #setup spaces
-        self.observation_shape_channel = (1,200,400)
+        self.observation_shape_channel = (1,300,600)
         self.observation_shape = (self.observation_shape_channel[2],self.observation_shape_channel[1])
         self.observation_space = Box(low=0,high=255,shape=self.observation_shape_channel,dtype=np.uint8)
         self.last_winner_area = None
@@ -60,52 +66,120 @@ class GameEnv(Env):
     def reset(self):
         pass
     
-    def get_observation(self):
+    def get_screenshot(self):
+        raw = np.array(self.cap.grab(self.monitor))[:,:,:3]
+        return raw
+
+    
+    def get_resized_screenshot(self):
         raw = np.array(self.cap.grab(self.monitor))[:,:,:3]
         
         #Grayscale
         gray = cv2.cvtColor(raw,cv2.COLOR_BGR2GRAY)
         #Resize
         resized = cv2.resize(gray,self.observation_shape)
-        #Add channels first, this is what stable baselines wants
-        channel = np.reshape(resized,self.observation_shape_channel)
+                
+        return resized
         
+    
+    
+    def get_observation(self,screenshot):
+        #Add channels first, this is what stable baselines wants
+        channel = np.reshape(screenshot,self.observation_shape_channel)        
         return channel
     
-    def difference_title_colors(self,grab_area):
-        if self.last_winner_area.shape != grab_area.shape:
-            raise Exception("length of winner area to compare is not the same between current and last frame")
+    
+    def difference_title_colors(self,img1,img2):
+        if img1.shape != img2.shape:
+            raise Exception("length of winner area to compare is not the same between current and last frame")        
+               
+        diff = self.image_difference_in_total(img1,img2)
+        return diff
+    
+    def image_difference_in_total(self,img1,img2):
+        diff = np.linalg.norm(img1-img2)
+        return diff
+
         
+        
+    def image_difference_pixels_above_threshold(self,img1,img2):
+        if img1.ndim == 2:
+            #GreyScale
+            pixel_max = 255
+            colors = [0]
+            img1 = np.array([img1])
+            img2 = np.array([img2])
+        else:
+            #rbg
+            pixel_max = 255
+            colors = [0,1,2]        
+            
+        threshold = pixel_max*PIXEL_COLOR_DIFF_THRESHOLD
         #count the amount of pixels that are different
         different_pixels = 0
-        for i in range(len(grab_area[0])):
-            for j in range(len(grab_area[0][0])):
+        for i in range(len(img1[0])):
+            for j in range(len(img1[0][0])):
                 #if any of the colors is too different 
-                for color in range(3):
-                    if abs(grab_area[color][i][j] - self.last_winner_area[color][i][j])>PIXEL_COLOR_DIFF_THRESHOLD:
+                for color in colors:
+                    if abs(img1[color][i][j] - img2[color][i][j])>threshold:
                         different_pixels += 1
                         break
                     
-        diff = different_pixels/len(grab_area)            
-        
-        # diff = np.linalg.norm(self.last_winner_area-grab_area)
-        print(diff)
-        
-        
-        return -1
-        
+        diff = different_pixels/len(img1)   
+        return diff  
     
     
-    def get_level_winner(self):
-        grab = np.array(self.cap.grab(self.level_winner_region))[:,:,:3]
-        if self.last_winner_area is not None:
-            if self.difference_title_colors(grab) > TITLE_COLOR_THRESHOLD:
-                #difference is big enough -> someone won the round, still need to figure out who that was though
-                avg_color = np.average(grab,axis=None)
-            
-        #else, first time looping. Update last winner area
+    def get_level_winner_with_pixel_counting(self,new_screen_cap):        
+        if new_screen_cap.ndim == 2:
+            #GreyScale
+            colors = [0]
+            new_screen_cap = np.array([new_screen_cap])
+        else:
+            #rbg
+            colors = [0,1,2]    
         
-        self.last_winner_area = grab
+        counting_map = {}
+        
+        for i in range(len(new_screen_cap[0])):
+            for j in range(len(new_screen_cap[0][0])):
+                #if any of the colors is too different 
+                color_key = ""
+                for color in colors:
+                    color_key += str(new_screen_cap[color][i][j])+"-"
+                color_key = color_key[:-1]
+                if color_key in counting_map:
+                    counting_map[color_key] += 1
+                else:
+                    counting_map[color_key] = 0
+        max_same_pixels_key = max(counting_map,key=counting_map.get)
+        total_pixels = len(new_screen_cap[0])
+        max_same_pixels = counting_map[max_same_pixels_key]
+        max_same_pixel_ratio = max_same_pixels/total_pixels
+        print(max_same_pixel_ratio)
+        
+                    
+           
+    
+    
+    def get_level_winner_with_tesseract(self):
+        new_screen_cap = np.array(self.cap.grab(self.monitor))[:,:,:3]
+        new_screen_cap = np.resize(new_screen_cap,(720,1280,new_screen_cap.shape[2]))
 
+        res = pytesseract.image_to_string(new_screen_cap)
+        print(res)
+    
+    
+    def get_level_winner_via_color_diff(self,new_screen_cap):
         
+        if self.last_winner_area is not None:
+            diff = self.difference_title_colors(self.last_winner_area,new_screen_cap)
+            print(diff)
+            if  diff > TITLE_COLOR_THRESHOLD:
+                print("triggered treshold")
+            
+        self.last_winner_area = new_screen_cap
         return
+    
+    def grab_winner_area(self):
+        grab = np.array(self.cap.grab(self.level_winner_region))[:,:,:3]
+        return grab
