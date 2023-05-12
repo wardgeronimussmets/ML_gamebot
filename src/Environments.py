@@ -57,6 +57,16 @@ class GameEnv(Env):
         bbox = (math.floor(left), math.floor(top), math.floor(right), math.floor(lower))
         return bbox
         
+    def get_level_winner_region_bar(self):
+        monitor = self.monitor
+        # Capture a bbox using percent values
+        left = monitor["left"]  # n-% from the left
+        top = monitor["top"] + monitor["height"] * 0.2  # n-% from the top
+        right = left + monitor['width']  # n-px width
+        lower = top + 0.2*monitor["height"]  # n-px height
+        bbox = (math.floor(left), math.floor(top), math.floor(right), math.floor(lower))
+        return bbox
+        
     def step(self, action):
         pass
     
@@ -162,9 +172,7 @@ class GameEnv(Env):
     
     
     def get_level_winner_with_tesseract(self):
-        new_screen_cap = np.array(self.cap.grab(self.monitor))[:,:,:3]
-        new_screen_cap = np.resize(new_screen_cap,(720,1280,new_screen_cap.shape[2]))
-
+        new_screen_cap = np.array(self.cap.grab(self.level_winner_region))[:,:,:3]
         res = pytesseract.image_to_string(new_screen_cap)
         print(res)
     
