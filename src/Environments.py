@@ -5,6 +5,9 @@ from mss import mss
 import cv2
 import math
 
+TITLE_COLOR_THRESHOLD = 50
+PIXEL_COLOR_DIFF_THRESHOLD = 50
+
 
 class GameEnv(Env):
     def __init__(self) -> None:
@@ -13,6 +16,7 @@ class GameEnv(Env):
         self.observation_shape_channel = (1,200,400)
         self.observation_shape = (self.observation_shape_channel[2],self.observation_shape_channel[1])
         self.observation_space = Box(low=0,high=255,shape=self.observation_shape_channel,dtype=np.uint8)
+        self.last_winner_area = None
         
         #action space:
         #   Discretes:
@@ -68,7 +72,40 @@ class GameEnv(Env):
         
         return channel
     
+    def difference_title_colors(self,grab_area):
+        if self.last_winner_area.shape != grab_area.shape:
+            raise Exception("length of winner area to compare is not the same between current and last frame")
+        
+        #count the amount of pixels that are different
+        different_pixels = 0
+        for i in range(len(grab_area[0])):
+            for j in range(len(grab_area[0][0])):
+                #if any of the colors is too different 
+                for color in range(3):
+                    if abs(grab_area[color][i][j] - self.last_winner_area[color][i][j])>PIXEL_COLOR_DIFF_THRESHOLD:
+                        different_pixels += 1
+                        break
+                    
+        diff = different_pixels/len(grab_area)            
+        
+        # diff = np.linalg.norm(self.last_winner_area-grab_area)
+        print(diff)
+        
+        
+        return -1
+        
+    
     
     def get_level_winner(self):
-        grab = self.cap.grab(self.level_winner_region)
-        return grab
+        grab = np.array(self.cap.grab(self.level_winner_region))[:,:,:3]
+        if self.last_winner_area is not None:
+            if self.difference_title_colors(grab) > TITLE_COLOR_THRESHOLD:
+                #difference is big enough -> someone won the round, still need to figure out who that was though
+                avg_color = np.average(grab,axis=None)
+            
+        #else, first time looping. Update last winner area
+        
+        self.last_winner_area = grab
+
+        
+        return
