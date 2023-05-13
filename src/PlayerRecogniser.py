@@ -2,14 +2,63 @@
 one will be which color. 
 """
 import ScreenGrabber
-from PIL import Image
+from PIL import Image,ImageTk
 import mss.tools
 import ImageDisplay
 import cv2
 import numpy as np
 import math
+import time
+import tkinter as tk
+import pygetwindow as gw
 
-def start_recognizing():
+
+
+def start_recognizing(time_interval=0.2,times_to_recognize=10):
+    print("Doesn't work")
+    exit()
+    
+    players = {}
+    
+    for i in range(times_to_recognize):
+        pixels = recognize_once()
+        for pix in pixels:
+            if pix in players:
+                players[pix] += pixels[pix]
+            else:
+                #check if similar color has been entered
+                found_similar = False
+                for ki in range(-5,5):
+                    if pix+ki in players:
+                        players[pix+ki] += pixels[pix]
+                        found_similar = True
+                        break
+                if not found_similar:
+                    players[pix] = pixels[pix]
+        time.sleep(time_interval)
+        
+    #only select the ones with the most matching pixels
+    players_sorted = dict(sorted(players.items(),key=lambda x:x[0],reverse=True))
+    previous_player = None
+    final_players_colours = []
+    stopped_counting_players = False
+    for player in players_sorted:
+        if previous_player is not None:
+            if players_sorted[previous_player] >= players_sorted[player]/2:
+                #rest isn't going to be relevant anymore
+                stopped_counting_players = True
+                break                                
+            final_players_colours.append(previous_player)
+        previous_player = player
+    if not stopped_counting_players:
+        final_players_colours.append(previous_player)
+        
+        
+    print(final_players_colours)
+    return final_players_colours
+    
+
+def recognize_once():
     img = ScreenGrabber.get_screenshot()
     gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
     
@@ -19,14 +68,15 @@ def start_recognizing():
     template = cv2.resize(template,(600,300))
     to_filter = cv2.resize(gray,(600,300))
     
-    to_filter_no_stats = filter_out_game_stats(to_filter)
-    ImageDisplay.show_images_2(to_filter,to_filter_no_stats)
-    exit()
+    
+    to_filter = filter_out_game_stats(to_filter)
+    template = filter_out_game_stats(template)
+    
+    # ImageDisplay.show_single_image(to_filter)
+
     
     mask = cv2.absdiff(template,to_filter)
-    
-    # ImageDisplay.show_images_2(template,to_filter)
-    
+        
     #pixel counting on pixels where mask is not null
     PIXEL_THRESHOLD = 10
     counting_map = {}
@@ -40,16 +90,9 @@ def start_recognizing():
                     counting_map[key] = 1
                         
     pixels = get_maxes_from_counting_map(counting_map,pixel_value_range=8)
-    print(pixels)
     
-    highlight_pixel_values_in_image(to_filter,pixels,10)
-    
-    l = []
-    for p in pixels:
-        l.append([p])
-    ImageDisplay.show_images_2(to_filter,l,as_grayscale=False)
-    
-    return -1  
+    return pixels
+     
 
 def filter_out_game_stats(image_to_filter):
     #at the bottom right there are some stats like how many people are playing etc
@@ -87,7 +130,7 @@ def get_maxes_from_counting_map(counting_map,pixel_value_range=2):
     #often the background will be included because of small changes somewhere
     
     #remove background pixels
-    BACKGROUND_PIXEL_VALUEs = [8,25]
+    BACKGROUND_PIXEL_VALUEs = [8,25,42,228,245]
     for bacground_pixel in BACKGROUND_PIXEL_VALUEs:
         counting_map = remove_pixel_from_map(counting_map,bacground_pixel,pixel_value_range)
     
@@ -121,8 +164,98 @@ def max_from_counting_map_loop_once(counting_map,pixel_value_range):
             max_val_key = key
     return max_val_key,max_val
 
+########################################################################################################
+class RecogniserInterface:
+    def __init__(self,players_callback):
+        
+        self.players_callback = players_callback
+        
+        # Create a Tkinter window
+        root = tk.Tk()
+        self.root = root
+        root.title("Add and Delete Players")
+
+        # Set the size of the window
+        root.geometry("300x500")
+
+        # Create a frame for the entries
+        entry_frame = tk.Frame(root)
+        self.entry_frame = entry_frame
+        entry_frame.pack(padx=10, pady=10)
+
+        # Create a list to hold the entry widgets and delete buttons
+        self.entries = []
+
+        # Create a button to add a new field
+        add_button = tk.Button(root, text="+ Add Player", command=lambda: self.add_entry())
+        add_button.pack(side=tk.TOP)
+        
+        #create plot button
+        plot_button = tk.Button(root, text="Show screenshot", command=lambda: self.show_screen_plot())
+        plot_button.pack(side=tk.TOP)
+        
+        #create save button
+        save_button = tk.Button(root, text="Save players",command=lambda:self.compute_player_input())
+        save_button.pack(side=tk.TOP)
+        
+        root.focus_set()
+
+        # Run the Tkinter event loop
+        root.mainloop()
+        
+    def show_screen_plot(self):
+        window = self.get_root_window()
+        window.minimize()
+        time.sleep(0.3)
+        
+        ImageDisplay.show_single_image(ScreenGrabber.get_resized_screenshot((800,400)))
+        time.sleep(0.1)
+        window.activate()
+        
+     
+    def get_root_window(self):
+        window = gw.getWindowsWithTitle("Add and Delete Players")[0]
+        return window
+
+        
+    
+    def compute_player_input(self):
+        player_colors = []
+        for entrie in self.entries:
+               player_colors.append(entrie[0].get())
+        self.players_callback(player_colors)
+    
+    # Create a function to get the pixel value
+    def get_pixel(self,event):
+        x, y = event.x, event.y
+        pixel_value = self.screen_cap[y, x]
+        print("Pixel value:", pixel_value)
+        
+    # Create a function to delete an entry and delete button
+    def delete_entry(self,entry, delete_button):
+        # Remove the entry widget and delete button from the list
+        self.entries.remove((entry, delete_button))
+
+        # Destroy the entry widget and delete button
+        entry.destroy()
+        delete_button.destroy()
+    
+
+    # Create a function to add a new entry and delete button
+    def add_entry(self):
+        # Create a new entry widget and delete button
+        entry = tk.Entry(self.entry_frame)
+        delete_button = tk.Button(self.entry_frame, text="Delete", command=lambda: self.delete_entry(entry, delete_button))
+
+        # Pack the entry widget and delete button
+        entry.pack(side=tk.TOP, pady=(0, 5))
+        delete_button.pack(side=tk.TOP)
+
+        # Add the entry widget and delete button to the list
+        self.entries.append((entry, delete_button))
+
 
 
     
 if __name__ == "__main__":
-    start_recognizing()
+    RecogniserInterface(None)
