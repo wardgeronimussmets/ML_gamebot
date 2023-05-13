@@ -185,6 +185,10 @@ class RecogniserInterface:
 
         # Create a list to hold the entry widgets and delete buttons
         self.entries = []
+        
+        #create explanation label
+        expl_label = tk.Label(root,text="Correct format is 111,222,333")
+        expl_label.pack(side=tk.TOP)
 
         # Create a button to add a new field
         add_button = tk.Button(root, text="+ Add Player", command=lambda: self.add_entry())
@@ -222,7 +226,9 @@ class RecogniserInterface:
     def compute_player_input(self):
         player_colors = []
         for entrie in self.entries:
-               player_colors.append(entrie[0].get())
+            user_input = entrie[0].get()
+            user_input_spl = user_input.split(",")
+            player_colors.append(user_input_spl)
         self.players_callback(player_colors)
     
     # Create a function to get the pixel value

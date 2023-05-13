@@ -10,8 +10,10 @@ from PIL import Image
 TITLE_BAR_THICKKNESS = 30 #px
 
     
-def grab_winner_area():
+def grab_winner_area(as_gray=False):
     grab = np.array(cap.grab(level_winner_region))[:,:,:3]
+    if as_gray:
+        grab = cv2.cvtColor(grab,cv2.COLOR_BGR2GRAY)
     return grab
 
 def get_screenshot():
