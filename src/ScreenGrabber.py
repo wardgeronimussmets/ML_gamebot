@@ -20,6 +20,10 @@ def get_screenshot():
     raw = np.array(cap.grab(game_region))[:,:,:3]
     return raw
 
+def get_and_save_screenshot(save_name):
+    screen = get_screenshot()
+    cv2.imwrite(save_name,screen)
+
 
 def get_active_game_region(window_name=None):
     # Get the currently focused window
@@ -72,10 +76,8 @@ def get_level_winner_region_bar():
 def get_resized_screenshot(resize_shape):
     raw = np.array(cap.grab(game_region))[:,:,:3]
     
-    #Grayscale
-    gray = cv2.cvtColor(raw,cv2.COLOR_BGR2GRAY)
     #Resize
-    resized = cv2.resize(gray,resize_shape)
+    resized = cv2.resize(raw,resize_shape)
             
     return resized
 

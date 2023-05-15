@@ -11,8 +11,131 @@ import math
 import time
 import tkinter as tk
 import pygetwindow as gw
+from Environments import OBSERVATION_SHAPE
+import numpy as np
 
 
+RECOGNIZER_SHAPE = (1920,1080)
+
+
+
+def recognize_once():
+    img = ScreenGrabber.get_screenshot()
+    template = cv2.imread("docs\Lobby3.png")
+    
+    template = cv2.resize(template,RECOGNIZER_SHAPE,interpolation=cv2.INTER_LINEAR)
+    to_filter = cv2.resize(img,RECOGNIZER_SHAPE,interpolation=cv2.INTER_LINEAR)
+        
+    to_filter = filter_out_game_stats(to_filter)
+    template = filter_out_game_stats(template)
+    
+    mask = cv2.absdiff(template,to_filter)
+    
+    #pixel counting on pixels where mask is not null
+    PIXEL_THRESHOLD = 50
+    counting_map = {}
+        
+    for i in range(len(mask)):
+        for j in range(len(mask[i])):
+            total_diff = 0
+            for color in range(len(mask[i][j])):
+                diff = (mask[i][j][color] - PIXEL_THRESHOLD)
+                if diff < 0:
+                    diff = 0
+                total_diff += diff
+
+            if total_diff > PIXEL_THRESHOLD:
+                key = tuple(mask[i][j])
+                if key in counting_map:
+                    counting_map[key] += 1
+                else:
+                    counting_map[key] = 1
+    
+    pixels = get_maxes_from_counting_map(counting_map,8)
+    print(pixels)
+
+
+            
+
+def get_maxes_from_counting_map(counting_map,pixel_value_range=2):    
+    #scan per grey value how many pixels in range of 5 or smth
+    pixels = {}
+    THRESHOLD = 200
+    #loops and finds the pixel that has changed the most, if there is no pixel below threshold anymore
+    #it stops looping and there are no more players left
+    #often the background will be included because of small changes somewhere
+    
+    while True:
+        max_val_key,max_val = max_from_counting_map_loop_once(counting_map,pixel_value_range)
+        if max_val<THRESHOLD:
+            return pixels
+        counting_map = remove_pixel_from_map(counting_map,max_val_key,pixel_value_range)
+        
+        pixels[max_val_key] = max_val
+        
+def max_from_counting_map_loop_once(counting_map,pixel_value_range):
+    max_val = 0
+    max_val_key = 0
+    for key in counting_map:
+        val = 0
+        b,g,r = key
+        for bi in range(-pixel_value_range,pixel_value_range+1):
+            b_index = b + bi
+            for gi in range(-pixel_value_range,pixel_value_range+1):
+                g_index = g + gi
+                for ri in range(-pixel_value_range,pixel_value_range+1):
+                    r_index = r + ri
+                    
+                    key2 = (b_index,g_index,r_index)
+                    if key2 in counting_map:
+                        val += counting_map[key2]
+        if val > max_val:
+            max_val = val
+            max_val_key = key
+    return max_val_key,max_val
+
+
+    
+def remove_pixel_from_map(map,pixel_value,pixel_value_range):
+    #remove keys from counting map
+    b,g,r = pixel_value
+    for bi in range(-pixel_value_range,pixel_value_range+1):
+        b_index = b + bi
+        for gi in range(-pixel_value_range,pixel_value_range+1):
+            g_index = g + gi
+            for ri in range(-pixel_value_range,pixel_value_range+1):
+                r_index = r + ri
+                
+                key = (b_index,g_index,r_index)
+                if key in map:
+                    del map[key]  
+    return map  
+    
+    
+    
+def filter_out_game_stats(image_to_filter):
+    #at the bottom right there are some stats like how many people are playing etc
+    filter_mask = np.ones(image_to_filter.shape,dtype=np.uint8)
+    START_HIDING_AT_HORI = 0.85 #in %
+    START_HIDING_AT_VERT = 0.78 #in %
+    horizontal_limit = math.floor(len(filter_mask[0]) * START_HIDING_AT_HORI)
+    vertical_limit = math.floor(len(filter_mask) * START_HIDING_AT_VERT)
+    for i in range(len(filter_mask)):
+        for j in range(len(filter_mask[i])):
+            if j>horizontal_limit and i>vertical_limit:
+                filter_mask[i][j] = 0
+    return cv2.multiply(image_to_filter,filter_mask)    
+
+
+
+
+
+if __name__ == "__main__":
+    recognize_once()
+
+
+#Old code 
+"""
 
 def start_recognizing(time_interval=0.2,times_to_recognize=10):
     print("Doesn't work")
@@ -265,3 +388,5 @@ class RecogniserInterface:
     
 if __name__ == "__main__":
     RecogniserInterface(None)
+    
+    """

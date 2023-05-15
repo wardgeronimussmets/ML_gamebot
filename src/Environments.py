@@ -12,6 +12,7 @@ import ScreenGrabber
 TITLE_COLOR_THRESHOLD = 1500
 PIXEL_COLOR_DIFF_THRESHOLD = 0.3 #factor that it can deviate from the maximum
 WINNER_CHECKER_INTERVAL = 1.8
+OBSERVATION_SHAPE = (3,300,600)
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
@@ -20,7 +21,7 @@ class GameEnv(Env):
     def __init__(self) -> None:
         super().__init__()
         #setup spaces
-        self.observation_shape_channel = (1,300,600)
+        self.observation_shape_channel = OBSERVATION_SHAPE
         self.observation_shape = (self.observation_shape_channel[2],self.observation_shape_channel[1])
         self.observation_space = Box(low=0,high=255,shape=self.observation_shape_channel,dtype=np.uint8)
                 
