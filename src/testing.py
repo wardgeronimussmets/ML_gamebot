@@ -13,15 +13,14 @@ def player_callback(players):
 if __name__ == "__main__":
     print("starting")
     
-    ImageDisplay.show_single_image(ScreenGrabber.grab_winner_area()) 
-    
      
+    # pixels = PlayerRecogniser.recognize_once()
+    pixels = {(2, 149, 198): 87, (140, 116, 63): 70}
+    print(pixels)
     
-    exit()
-    env = GameEnv()
-    players = [160,135]
     while True:
-        time.sleep(1)
-        print(WinnerSearcher.get_level_winner(players))
+        img = ScreenGrabber.get_resized_screenshot(PlayerRecogniser.RECOGNIZER_SHAPE)
+        mask = PlayerRecogniser.get_players_mask(pixels,img,50)
+        ImageDisplay.show_single_image(mask,ImageDisplay.BGR_IMAGE)
     
     

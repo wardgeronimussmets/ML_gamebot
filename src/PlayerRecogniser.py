@@ -52,8 +52,7 @@ def recognize_once():
                     counting_map[key] = 1
     
     pixels = get_maxes_from_counting_map(counting_map,8)
-    print(pixels)
-    ImageDisplay.show_pixels_from_pixel_map(pixels)
+    return pixels
 
 
             
@@ -131,11 +130,32 @@ def filter_out_game_stats(image_to_filter):
     return cv2.multiply(image_to_filter,filter_mask)    
 
 
+def get_players_mask(pixels,image_to_filter,pixel_value_range):
+    mask = image_to_filter.copy()
+    for i in range(len(image_to_filter)):
+        for j in range(len(image_to_filter[i])):                    
+            player_matches = []
+            for player_pixels in pixels:
+                player_match = True
+                for pixel_index in range(3):
+                    if (image_to_filter[i][j][pixel_index] + pixel_value_range < player_pixels[pixel_index]) or (image_to_filter[i][j][pixel_index] - pixel_value_range > player_pixels[pixel_index]):
+                        player_match = False
+                        break
+                player_matches.append(player_match)
+            if True not in player_matches:
+                mask[i][j] = (0,0,0)
+    return mask                  
 
 
 
 if __name__ == "__main__":
-    recognize_once()
+    pixels = {(2, 149, 198): 87, (140, 116, 63): 70}
+    
+    image = [[[0,0,0],[10,20,10]],
+             [[135,110,65],[0,0,0]]]
+    mask = get_players_mask(pixels,image,10)
+    print(mask)
+
 
 
 #Old code 
