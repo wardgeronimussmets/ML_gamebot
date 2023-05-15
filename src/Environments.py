@@ -28,11 +28,9 @@ class GameEnv(Env):
         #first it gets a screencap of the game itself
         #then a screencap masked with the players at a lower resolution
         #then it's own color -> hopefully it will learn that and can control multiple colors
-        self.observation_space = Tuple((Box(low=0,high=255,shape=self.observation_shape_channel,dtype=np.uint8), Box(low=0,high=255,shape=OBSERVATION_SHAPE_MASK,dtype=np.uint8),Box(low=0,high=255,shape=(3,1,1),dtype=np.uint8)))
-        # self.observation_space = Tuple((Box(low=0,high=255,shape=self.observation_shape_channel,dtype=np.uint8)),
-        #                                (Box(low=0,high=255,shape=OBSERVATION_SHAPE_MASK,dtype=np.uint8)),
-        #                                (Box(low=0,high=255,shape=(3,1,1),dtype=np.uint8)))
-                
+        self.observation_space = Tuple((Box(low=0,high=255,shape=self.observation_shape_channel,dtype=np.uint8), 
+                                        Box(low=0,high=255,shape=OBSERVATION_SHAPE_MASK,dtype=np.uint8),
+                                        Box(low=0,high=255,shape=(3,1,1),dtype=np.uint8)))
         #action space:
         #   Discretes:
         #       0 -> No op
@@ -55,7 +53,12 @@ class GameEnv(Env):
         
         
     def step(self, action):
-        pass
+        if action[0][0] == 0:
+            #no operation
+            pass
+        elif action[0][0] == 1:
+            #attack key
+            pass
     
     def render(self):
         pass
