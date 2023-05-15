@@ -46,7 +46,12 @@ def show_images_2(image1,image2,image_types):
         axs[1].imshow(im2)
         axs[1].set_title('Image 2')
         
-
-
     # Display the figure
     plt.show()
+    
+def show_pixels_from_pixel_map(map):
+    lst = []
+    for key in map:
+        b,g,r = key
+        lst.append([[r,g,b]])
+    show_single_image(lst,RGB_IMAGE)

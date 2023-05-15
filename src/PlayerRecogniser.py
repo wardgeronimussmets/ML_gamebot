@@ -15,7 +15,7 @@ from Environments import OBSERVATION_SHAPE
 import numpy as np
 
 
-RECOGNIZER_SHAPE = (1920,1080)
+RECOGNIZER_SHAPE = (480,320)
 
 
 
@@ -32,7 +32,7 @@ def recognize_once():
     mask = cv2.absdiff(template,to_filter)
     
     #pixel counting on pixels where mask is not null
-    PIXEL_THRESHOLD = 50
+    PIXEL_THRESHOLD = 0.0000241*RECOGNIZER_SHAPE[0]*RECOGNIZER_SHAPE[1]
     counting_map = {}
         
     for i in range(len(mask)):
@@ -53,17 +53,21 @@ def recognize_once():
     
     pixels = get_maxes_from_counting_map(counting_map,8)
     print(pixels)
+    ImageDisplay.show_pixels_from_pixel_map(pixels)
 
 
             
 
-def get_maxes_from_counting_map(counting_map,pixel_value_range=2):    
+def get_maxes_from_counting_map(counting_map,pixel_value_range=2,pixel_value_range_background=20):    
     #scan per grey value how many pixels in range of 5 or smth
     pixels = {}
-    THRESHOLD = 200
+    THRESHOLD = 0.000106451*RECOGNIZER_SHAPE[0]*RECOGNIZER_SHAPE[1]
     #loops and finds the pixel that has changed the most, if there is no pixel below threshold anymore
     #it stops looping and there are no more players left
-    #often the background will be included because of small changes somewhere
+    #often the background will be included because of small changes somewhere + white from swings and effects. Don't want that
+    unwated_pixels = [(20,15,10),(165,190,220)]
+    for unwanted_pixel in unwated_pixels:
+        counting_map = remove_pixel_from_map(counting_map,unwanted_pixel,pixel_value_range_background)
     
     while True:
         max_val_key,max_val = max_from_counting_map_loop_once(counting_map,pixel_value_range)
