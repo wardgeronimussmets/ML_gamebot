@@ -29,17 +29,23 @@ def recognize_once():
     to_filter = ScreenGrabber.filter_out_game_stats(to_filter)
     template = ScreenGrabber.filter_out_game_stats(template)
     
-    mask = cv2.absdiff(template,to_filter)
+    mask = cv2.absdiff(to_filter,template)
     
+    counting_map = count_pixels_in_image(mask)
+    
+    pixels = get_maxes_from_counting_map(counting_map,8)
+    return pixels
+
+def count_pixels_in_image(mask):
     #pixel counting on pixels where mask is not null
-    PIXEL_THRESHOLD = 0.0000241*RECOGNIZER_SHAPE[0]*RECOGNIZER_SHAPE[1]
+    PIXEL_THRESHOLD = 0.00001*RECOGNIZER_SHAPE[0]*RECOGNIZER_SHAPE[1]
     counting_map = {}
         
     for i in range(len(mask)):
         for j in range(len(mask[i])):
             total_diff = 0
             for color in range(len(mask[i][j])):
-                diff = (mask[i][j][color] - PIXEL_THRESHOLD)
+                diff = abs(mask[i][j][color] - PIXEL_THRESHOLD)
                 if diff < 0:
                     diff = 0
                 total_diff += diff
@@ -50,9 +56,8 @@ def recognize_once():
                     counting_map[key] += 1
                 else:
                     counting_map[key] = 1
+    return counting_map
     
-    pixels = get_maxes_from_counting_map(counting_map,8)
-    return pixels
 
 
             

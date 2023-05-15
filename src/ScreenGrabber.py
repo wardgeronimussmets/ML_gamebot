@@ -10,10 +10,17 @@ from PIL import Image
 TITLE_BAR_THICKKNESS = 30 #px
 
     
-def grab_winner_area(as_gray=False):
-    grab = np.array(cap.grab(level_winner_region))[:,:,:3]
+def grab_winner_area(as_gray=False,whole_bar=False,resized_shape=None):
+    if whole_bar:
+        region_to_grab = level_winner_bar
+    else:
+        region_to_grab = level_winner_region
+    grab = np.array(cap.grab(region_to_grab))[:,:,:3]
     if as_gray:
         grab = cv2.cvtColor(grab,cv2.COLOR_BGR2GRAY)
+        
+    if resized_shape:
+        grab = cv2.resize(grab,resized_shape)
     return grab
 
 def get_screenshot():
@@ -109,3 +116,4 @@ GAME_NAME = "Stick Fight: The Game"
 cap = mss()
 game_region = get_active_game_region(GAME_NAME)
 level_winner_region = get_level_winner_region()
+level_winner_bar = get_level_winner_region_bar()
