@@ -14,13 +14,14 @@ if __name__ == "__main__":
     print("starting")
     
      
-    # pixels = PlayerRecogniser.recognize_once()
-    pixels = {(2, 149, 198): 87, (140, 116, 63): 70}
+    #pixels = {(0, 133, 199): 85, (202, 166, 93): 56}
+    pixels = PlayerRecogniser.recognize_once()
     print(pixels)
     
     while True:
+        input()
         img = ScreenGrabber.get_resized_screenshot(PlayerRecogniser.RECOGNIZER_SHAPE)
-        mask = PlayerRecogniser.get_players_mask(pixels,img,50)
-        ImageDisplay.show_single_image(mask,ImageDisplay.BGR_IMAGE)
+        mask = PlayerRecogniser.get_players_mask(pixels,img,70)
+        ImageDisplay.show_images_2(img,mask,ImageDisplay.BGR_IMAGE)
     
     

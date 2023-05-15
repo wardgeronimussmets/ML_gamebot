@@ -81,6 +81,21 @@ def get_resized_screenshot(resize_shape):
             
     return resized
 
+
+def filter_out_game_stats(image_to_filter):
+    #at the bottom right there are some stats like how many people are playing etc
+    filter_mask = np.ones(image_to_filter.shape,dtype=np.uint8)
+    START_HIDING_AT_HORI = 0.85 #in %
+    START_HIDING_AT_VERT = 0.78 #in %
+    horizontal_limit = math.floor(len(filter_mask[0]) * START_HIDING_AT_HORI)
+    vertical_limit = math.floor(len(filter_mask) * START_HIDING_AT_VERT)
+    for i in range(len(filter_mask)):
+        for j in range(len(filter_mask[i])):
+            if j>horizontal_limit and i>vertical_limit:
+                filter_mask[i][j] = 0
+    return cv2.multiply(image_to_filter,filter_mask) 
+
+
 def reinitilize():
     game_region = get_active_game_region()
     level_winner_region = get_level_winner_region()

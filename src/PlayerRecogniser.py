@@ -26,8 +26,8 @@ def recognize_once():
     template = cv2.resize(template,RECOGNIZER_SHAPE,interpolation=cv2.INTER_LINEAR)
     to_filter = cv2.resize(img,RECOGNIZER_SHAPE,interpolation=cv2.INTER_LINEAR)
         
-    to_filter = filter_out_game_stats(to_filter)
-    template = filter_out_game_stats(template)
+    to_filter = ScreenGrabber.filter_out_game_stats(to_filter)
+    template = ScreenGrabber.filter_out_game_stats(template)
     
     mask = cv2.absdiff(template,to_filter)
     
@@ -116,21 +116,11 @@ def remove_pixel_from_map(map,pixel_value,pixel_value_range):
     
     
     
-def filter_out_game_stats(image_to_filter):
-    #at the bottom right there are some stats like how many people are playing etc
-    filter_mask = np.ones(image_to_filter.shape,dtype=np.uint8)
-    START_HIDING_AT_HORI = 0.85 #in %
-    START_HIDING_AT_VERT = 0.78 #in %
-    horizontal_limit = math.floor(len(filter_mask[0]) * START_HIDING_AT_HORI)
-    vertical_limit = math.floor(len(filter_mask) * START_HIDING_AT_VERT)
-    for i in range(len(filter_mask)):
-        for j in range(len(filter_mask[i])):
-            if j>horizontal_limit and i>vertical_limit:
-                filter_mask[i][j] = 0
-    return cv2.multiply(image_to_filter,filter_mask)    
+   
 
 
-def get_players_mask(pixels,image_to_filter,pixel_value_range):
+def get_players_mask(pixels,image_to_filter,pixel_value_range=70):
+    #default pixel value range is high, but this works very well
     mask = image_to_filter.copy()
     for i in range(len(image_to_filter)):
         for j in range(len(image_to_filter[i])):                    

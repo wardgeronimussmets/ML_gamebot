@@ -1,8 +1,18 @@
 import numpy as np
 import ScreenGrabber
 import ImageDisplay
+import PlayerRecogniser
 
 
+def get_level_winner(player_colors):    
+    
+    new_screen_cap = ScreenGrabber.grab_winner_area(as_gray=False)    
+    mask = PlayerRecogniser.get_players_mask(new_screen_cap)
+    ImageDisplay.show_single_image(mask)
+
+
+#OLD CODE
+"""
 
 def get_level_winner(player_colors,color_range=10,winner_treshold=0.02):    
     
@@ -28,3 +38,4 @@ def get_level_winner(player_colors,color_range=10,winner_treshold=0.02):
                 
     print(counting_map)  
     return None
+    """

@@ -55,3 +55,29 @@ def show_pixels_from_pixel_map(map):
         b,g,r = key
         lst.append([[r,g,b]])
     show_single_image(lst,RGB_IMAGE)
+
+
+
+
+"""
+class VideoPlotter():
+    def __init__(self) -> None:
+        # Create a figure and axis
+        fig, ax = plt.subplots()
+        self.ax = ax
+        self.plot_is_visible = False
+    def show_new_image(self,image,type):
+        if self.plot_is_visible:
+            self.ax.clear()
+        if type == BGR_IMAGE:
+            image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
+        self.ax.imshow(image)
+        if self.plot_is_visible:
+            plt.draw()
+            plt.pause(0.001)
+        else:
+            plt.show()
+            self.plot_is_visible = True
+
+        
+"""
