@@ -1,13 +1,12 @@
 from gym import Env
-from gym.spaces import Box,Tuple,MultiDiscrete,Discrete
+from gym.spaces import Box,Tuple,MultiDiscrete
 import numpy as np
 from mss import mss
-import cv2
-import math
-import time
-import pytesseract
-import ImageDisplay
 import ScreenGrabber
+from Enums import Command
+import GamepadEmulator
+import time
+
 
 TITLE_COLOR_THRESHOLD = 1500
 PIXEL_COLOR_DIFF_THRESHOLD = 0.3 #factor that it can deviate from the maximum
@@ -15,7 +14,10 @@ WINNER_CHECKER_INTERVAL = 1.8
 OBSERVATION_SHAPE = (3,300,600)
 OBSERVATION_SHAPE_MASK = (3,150,300)
 
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+exception_var = None
+
+# pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+        
 
 
 class GameEnv(Env):
@@ -44,21 +46,43 @@ class GameEnv(Env):
         
         #   Continues (between 1 and -1)
         #       0 -> Movement (left and right)
-        #       1 -> Aim (left and right)
-        #       2 -> Aim (up and down)
+        #       1 -> Movement (up and down) (player can fall quicker but not much else)
+        #       2 -> Aim (left and right)
+        #       3 -> Aim (up and down)
         self.action_space = Tuple((
             MultiDiscrete([4,2]),
-            Box(low=-1.0,high=1.0,shape=(3,))           
+            Box(low=-1.0,high=1.0,shape=(4,))           
         ))
         
+        self.gamepad = GamepadEmulator.GamePad()
+        
+        
+    def stop_controller(self):
+        self.queue_object.join()
+        print("Controller thread stopped")
         
     def step(self, action):
         if action[0][0] == 0:
-            #no operation
-            pass
-        elif action[0][0] == 1:
+            self.gamepad.release_blocking()
+        if action[0][0] == 1:
             #attack key
-            pass
+            self.gamepad.modulate_attack(True)
+            
+        elif action[0][0] == 2:
+            self.gamepad.modulate_throw(True)
+        elif action[0][0] == 3:
+            self.gamepad.modulate_block(True)
+            
+        if action[0][1] == 1:
+            self.gamepad.modulate_jump(True)
+        elif action[0][1] == 0:
+            self.gamepad.modulate_jump(False)
+            
+        
+        self.gamepad.update_movement(action[1][0],action[1][1])
+        self.gamepad.update_aim(action[1][2],action[1][3])
+            
+        
     
     def render(self):
         pass
@@ -76,7 +100,12 @@ class GameEnv(Env):
     
 if __name__ == "__main__":
     env = GameEnv()
-    print(env.action_space.sample())
+    while True:
+        action = env.action_space.sample()
+        print(action)
+        time.sleep(3)
+        env.step(action)
+        
         
 
     
