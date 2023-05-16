@@ -1,4 +1,4 @@
-from gym import Env,spaces
+from gym import Env
 from gym.spaces import Box,Tuple,MultiDiscrete
 import numpy as np
 from mss import mss
@@ -25,9 +25,7 @@ LOG_DIR = './logs/'
 
 
 # pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-        
-class MultiDiscreteUint8(spaces.MultiDiscrete):
-    dtype = np.uint8
+
 
 class GameEnv(Env):
     def __init__(self,player_colour,player_colours,virtual_gamepad):
@@ -39,7 +37,7 @@ class GameEnv(Env):
         #then a screencap masked with the players at a lower resolution
         #then it's own color -> hopefully it will learn that and can control multiple colors
         #this is flattened because of stable baselines
-        self.observation_space = MultiDiscreteUint8(np.full(1215003,255,dtype=np.uint8))
+        self.observation_space = Box(low=0, high=255, shape=OBSERVATION_SHAPE, dtype=np.uint8)
         #action space:
         #   Discretes:
         #       0 -> No op
@@ -96,27 +94,27 @@ class GameEnv(Env):
         elif action[1] == 0:
             self.gamepad.modulate_jump(False)
             
-        left,right = self.discrete_to_continues(action[2]),self.discrete_to_continues(action[3])
-        self.gamepad.update_movement(left,right)
+        self.gamepad.update_movement(self.discrete_to_continues(action[2]),self.discrete_to_continues(action[3]))
         self.gamepad.update_aim(self.discrete_to_continues(action[4]),self.discrete_to_continues(action[5]))
         
         winner = self.winner_searcher.next_scan()
         game_done = False
         reward = 0
         if winner is not None:
+            print(winner)
             game_done = True
-            for player in self.player_colors:
-                if player == winner:
-                    if player == self.player_color:
-                        #we won
-                        reward = 100
-                    else:
-                        #we lost
-                        reward = -50
-                    break
-        else:
-            #didn't die either -> good
-            reward = 10
+            if self.player_color == winner:
+                 #we won
+                reward = 100
+                print("AI bot of color",self.player_color,"won")
+            else:
+                #we lost
+                reward = -50
+                print("Ai got destroyed")
+            
+        #add score for movement
+        speed = abs(action[2] - 100)
+        reward += speed/100
         
         return self.get_observation(),reward,game_done,{} #  return observation, reward, done, info
 
@@ -135,19 +133,22 @@ class GameEnv(Env):
         return self.get_observation()
     
     def get_observation(self):
-        screenshot = ScreenGrabber.get_resized_screenshot(self.resize_shape)
+        screenshot = ScreenGrabber.get_screenshot()
         #Add channels first, this is what stable baselines wants
         
-        screen_resized = cv2.resize(screenshot,(OBSERVATION_SHAPE_MASK[2],OBSERVATION_SHAPE_MASK[1]))
-        mask = PlayerRecogniser.get_players_mask(self.player_colors,screen_resized)
+        screen_resized = cv2.resize(screenshot,(OBSERVATION_SHAPE[2],OBSERVATION_SHAPE[1]))
+        channel = np.reshape(screen_resized,OBSERVATION_SHAPE)
+        # mask = PlayerRecogniser.get_players_mask(self.player_colors,screen_resized)
         
-        if self.previous_screen is None:
-            self.previous_screen = screenshot
+        # if self.previous_screen is None:
+        #     self.previous_screen = screenshot
         
-        obs = self.observations_to_single_box(screenshot,self.previous_screen,mask,self.player_color)
-        self.previous_screen = screenshot
+        # obs = self.observations_to_single_box(screenshot,self.previous_screen,mask,self.player_color)
+        # self.previous_screen = screenshot
 
-        return obs
+        # print(obs.shape)
+        
+        return channel
     
 
 

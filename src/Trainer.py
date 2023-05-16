@@ -1,10 +1,12 @@
+import ImageDisplay
+import ScreenGrabber
 # Import os for file path management
 import os 
 # Import Base Callback for saving models
 from stable_baselines3.common.callbacks import BaseCallback
 # Check Environment    
 from stable_baselines3.common import env_checker
-from stable_baselines3 import PPO
+from stable_baselines3 import PPO,DQN
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
 
@@ -43,18 +45,36 @@ def load_new_bot():
         previous_player_colors = PlayerRecogniser.recognize_once()
         gamepad = GamepadEmulator.GamePad()
         #random input so the player joins
-        for i in range(4):
+        for i in range(20):
             gamepad.modulate_jump(True)
-            time.sleep(0.1)
+            time.sleep(0.2)
             gamepad.modulate_jump(False)
-            time.sleep(0.1)
+            time.sleep(0.2)
+            gamepad.modulate_attack(True)
+            time.sleep(0.2)
+            gamepad.modulate_attack(False)
+
+        #wait for player to drop down in the map
         new_player_colors = PlayerRecogniser.recognize_once()
-        for key in new_player_colors:
-            if key not in previous_player_colors:
-                new_player = key
-                env = Environments.GameEnv(new_player,new_player_colors,gamepad)
-                print("Adding new bot with color", new_player)
-                return env
+        print("player colors",new_player_colors)
+        if len(previous_player_colors) + 1 == len(new_player_colors):
+            #new player has been added, but which
+            for new_player_key in new_player_colors:
+                no_match_found = True
+                for old_player_key in previous_player_colors:
+                    matched = True
+                    for color in range(3):
+                        if abs(old_player_key[color]- new_player_key[color])>20:
+                            matched = False
+                    if matched:
+                        no_match_found = False
+                if no_match_found:
+                    #that is the new player
+                    new_player = new_player_key
+                    break
+            env = Environments.GameEnv(new_player,new_player_colors,gamepad)
+            print("Adding new bot with color", new_player)
+            return env
         print("Failed to add new bot")
         gamepad.destroy()
     
@@ -65,8 +85,9 @@ def start_training():
     env_faults = env_checker.check_env(env)
     if env is not None:
         #create new model
-        model = PPO('MultiInputPolicy', env, tensorboard_log=LOG_DIR, verbose=1)
+        model = PPO('CnnPolicy', env, tensorboard_log=LOG_DIR, verbose=1)        
         callback = TrainAndLoggingCallback(check_freq=1000, save_path=CHECKPOINT_DIR)
+        print("starting to learn")
         model.learn(total_timesteps=100000, callback=callback)
         
         

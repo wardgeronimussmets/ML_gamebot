@@ -13,6 +13,7 @@ import tkinter as tk
 import pygetwindow as gw
 from Environments import OBSERVATION_SHAPE
 import numpy as np
+import time
 
 
 RECOGNIZER_SHAPE = (480,320)
