@@ -117,5 +117,5 @@ if __name__ == "__main__":
     time.sleep(5)
     for x in range(3):
         print("jumping")
-        gam.jump()
+        gam.press_and_release_button(JUMP)
         time.sleep(3)

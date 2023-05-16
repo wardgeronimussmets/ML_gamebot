@@ -3,9 +3,12 @@ from gym.spaces import Box,Tuple,MultiDiscrete
 import numpy as np
 from mss import mss
 import ScreenGrabber
-from Enums import Command
 import GamepadEmulator
 import time
+import PlayerRecogniser
+import cv2
+
+
 
 
 TITLE_COLOR_THRESHOLD = 1500
@@ -14,23 +17,25 @@ WINNER_CHECKER_INTERVAL = 1.8
 OBSERVATION_SHAPE = (3,300,600)
 OBSERVATION_SHAPE_MASK = (3,150,300)
 
-exception_var = None
+#model training
+CHECKPOINT_DIR = './train/'
+LOG_DIR = './logs/'
+
 
 # pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
         
 
 
 class GameEnv(Env):
-    def __init__(self) -> None:
+    def __init__(self,player_colour,player_colours,virtual_gamepad):
         super().__init__()
         #setup spaces
-        self.observation_shape_channel = OBSERVATION_SHAPE
-        self.resize_shape = (self.observation_shape_channel[2],self.observation_shape_channel[1])
+        self.resize_shape = (OBSERVATION_SHAPE[2],OBSERVATION_SHAPE[1])
         #multiple observations
         #first it gets a screencap of the game itself
         #then a screencap masked with the players at a lower resolution
         #then it's own color -> hopefully it will learn that and can control multiple colors
-        self.observation_space = Tuple((Box(low=0,high=255,shape=self.observation_shape_channel,dtype=np.uint8), 
+        self.observation_space = Tuple((Box(low=0,high=255,shape=OBSERVATION_SHAPE,dtype=np.uint8), 
                                         Box(low=0,high=255,shape=OBSERVATION_SHAPE_MASK,dtype=np.uint8),
                                         Box(low=0,high=255,shape=(3,1,1),dtype=np.uint8)))
         #action space:
@@ -54,12 +59,14 @@ class GameEnv(Env):
             Box(low=-1.0,high=1.0,shape=(4,))           
         ))
         
-        self.gamepad = GamepadEmulator.GamePad()
+        self.gamepad = virtual_gamepad
         
+        self.player_color = player_colour
+        self.player_colors = player_colours
+    
+    def update_player_colors(self,players):
+        self.player_colors = players
         
-    def stop_controller(self):
-        self.queue_object.join()
-        print("Controller thread stopped")
         
     def step(self, action):
         if action[0][0] == 0:
@@ -78,26 +85,34 @@ class GameEnv(Env):
         elif action[0][1] == 0:
             self.gamepad.modulate_jump(False)
             
-        
         self.gamepad.update_movement(action[1][0],action[1][1])
         self.gamepad.update_aim(action[1][2],action[1][3])
             
         
     
     def render(self):
+        #no need to render anything
         pass
     
     def reset(self):
+        #used to start a new episode, but that happens automatically -> no need
         pass
     
     def get_observation(self):
-        
         screenshot = ScreenGrabber.get_resized_screenshot(self.resize_shape)
         #Add channels first, this is what stable baselines wants
-        channel = np.reshape(screenshot,self.observation_shape_channel)        
-        return channel
+        channel = np.reshape(screenshot,OBSERVATION_SHAPE)        
+        
+        screen_resized = cv2.resize(screenshot,(OBSERVATION_SHAPE_MASK[2],OBSERVATION_SHAPE_MASK[1]))
+        mask = PlayerRecogniser.get_players_mask(self.player_colors,screen_resized)
+        mask = np.reshape(mask,OBSERVATION_SHAPE_MASK)
+        
+        return (channel,mask,self.player_color)
     
+
+
     
+
 if __name__ == "__main__":
     env = GameEnv()
     while True:
