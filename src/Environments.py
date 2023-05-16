@@ -22,13 +22,14 @@ OBSERVATION_SHAPE_MASK = (3,150,300)
 #model training
 CHECKPOINT_DIR = './train/'
 LOG_DIR = './logs/'
+IMAGE_LOGGING_DIR = './image_loggin/'
 
 
 # pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 
 class GameEnv(Env):
-    def __init__(self,player_colour,player_colours,virtual_gamepad):
+    def __init__(self,player_colour,player_colours,virtual_gamepad,image_logging=False):
         super().__init__()
         #setup spaces
         self.resize_shape = (OBSERVATION_SHAPE[2],OBSERVATION_SHAPE[1])
@@ -64,6 +65,10 @@ class GameEnv(Env):
         self.previous_screen = None
         
         self.winner_searcher = WinnerSearcher(self.player_colors)
+        
+        self.image_logging_counter = 0
+        self.image_logging_last_name = 0    
+        self.image_logging = image_logging    
         
     
     def update_player_colors(self,players):
@@ -113,13 +118,13 @@ class GameEnv(Env):
                 print("Ai got destroyed")
             
         #add score for movement
-        speed = abs(action[2] - 100)
-        reward += speed/100
+        # speed = abs(action[2] - 100)
+        # reward += speed/100
         
         return self.get_observation(),reward,game_done,{} #  return observation, reward, done, info
 
         
-        
+    
         
             
         
@@ -137,6 +142,15 @@ class GameEnv(Env):
         #Add channels first, this is what stable baselines wants
         
         screen_resized = cv2.resize(screenshot,(OBSERVATION_SHAPE[2],OBSERVATION_SHAPE[1]))
+        
+        if self.image_logging:
+            if self.image_logging_counter > 100:
+                cv2.imwrite(IMAGE_LOGGING_DIR+str(self.image_logging_last_name),screen_resized)
+                self.image_logging_last_name += 1
+                self.image_logging_counter = 0
+            self.image_logging_counter += 1
+        
+        
         channel = np.reshape(screen_resized,OBSERVATION_SHAPE)
         # mask = PlayerRecogniser.get_players_mask(self.player_colors,screen_resized)
         

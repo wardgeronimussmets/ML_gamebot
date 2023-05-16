@@ -43,9 +43,10 @@ def load_new_bot():
     while True:
         print("attempting to add new bot")
         previous_player_colors = PlayerRecogniser.recognize_once()
+        print("Already existing players are",previous_player_colors)
         gamepad = GamepadEmulator.GamePad()
         #random input so the player joins
-        for i in range(20):
+        for i in range(5):
             gamepad.modulate_jump(True)
             time.sleep(0.2)
             gamepad.modulate_jump(False)
@@ -56,7 +57,8 @@ def load_new_bot():
 
         #wait for player to drop down in the map
         new_player_colors = PlayerRecogniser.recognize_once()
-        print("player colors",new_player_colors)
+        print("adding from ",new_player_colors)
+        # print("player colors",new_player_colors)
         if len(previous_player_colors) + 1 == len(new_player_colors):
             #new player has been added, but which
             for new_player_key in new_player_colors:
