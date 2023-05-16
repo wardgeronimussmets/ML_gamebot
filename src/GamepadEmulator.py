@@ -110,6 +110,9 @@ class GamePad():
             self.gamepad.update()
         except Exception:
             print("Failed to input the right joystick")
+            
+    def destroy(self):
+        self.gamepad.reset()
         
         
 if __name__ == "__main__":

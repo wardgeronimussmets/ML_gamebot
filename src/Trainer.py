@@ -38,29 +38,34 @@ class TrainAndLoggingCallback(BaseCallback):
     
 
 def load_new_bot():
-    print("adding new bot")
-    previous_player_colors = PlayerRecogniser.recognize_once()
-    gamepad = GamepadEmulator.GamePad()
-    #random input so the player joins
-    for i in range(4):
-        gamepad.modulate_jump(True)
-        time.sleep(0.1)
-        gamepad.modulate_jump(False)
-        time.sleep(0.1)
-    new_player_colors = PlayerRecogniser.recognize_once()
-    for key in new_player_colors:
-        if key not in previous_player_colors:
-            new_player = key
-            env = Environments.GameEnv(new_player,new_player_colors,gamepad)
-            return env
+    while True:
+        print("attempting to add new bot")
+        previous_player_colors = PlayerRecogniser.recognize_once()
+        gamepad = GamepadEmulator.GamePad()
+        #random input so the player joins
+        for i in range(4):
+            gamepad.modulate_jump(True)
+            time.sleep(0.1)
+            gamepad.modulate_jump(False)
+            time.sleep(0.1)
+        new_player_colors = PlayerRecogniser.recognize_once()
+        for key in new_player_colors:
+            if key not in previous_player_colors:
+                new_player = key
+                env = Environments.GameEnv(new_player,new_player_colors,gamepad)
+                print("Adding new bot with color", new_player)
+                return env
+        print("Failed to add new bot")
+        gamepad.destroy()
     
     
 def start_training():
     #load 1 env with gamepad
     env = load_new_bot()
+    env_faults = env_checker.check_env(env)
     if env is not None:
         #create new model
-        model = PPO('CnnPolicy', env, tensorboard_log=LOG_DIR, verbose=1)
+        model = PPO('MultiInputPolicy', env, tensorboard_log=LOG_DIR, verbose=1)
         callback = TrainAndLoggingCallback(check_freq=1000, save_path=CHECKPOINT_DIR)
         model.learn(total_timesteps=100000, callback=callback)
         
