@@ -74,7 +74,7 @@ def load_new_bot():
                     #that is the new player
                     new_player = new_player_key
                     break
-            env = Environments.GameEnv(new_player,new_player_colors,gamepad)
+            env = Environments.GameEnv(new_player,new_player_colors,gamepad,image_logging=True)
             print("Adding new bot with color", new_player)
             return env
         print("Failed to add new bot")

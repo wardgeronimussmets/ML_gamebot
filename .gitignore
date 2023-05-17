@@ -2,3 +2,5 @@
 *.pyc
 logs
 train
+yolov5
+image_logging

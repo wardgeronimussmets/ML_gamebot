@@ -22,7 +22,7 @@ OBSERVATION_SHAPE_MASK = (3,150,300)
 #model training
 CHECKPOINT_DIR = './train/'
 LOG_DIR = './logs/'
-IMAGE_LOGGING_DIR = './image_loggin/'
+IMAGE_LOGGING_DIR = './image_logging/'
 
 
 # pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
@@ -110,7 +110,7 @@ class GameEnv(Env):
             game_done = True
             if self.player_color == winner:
                  #we won
-                reward = 100
+                reward = 1000
                 print("AI bot of color",self.player_color,"won")
             else:
                 #we lost
@@ -118,8 +118,18 @@ class GameEnv(Env):
                 print("Ai got destroyed")
             
         #add score for movement
-        # speed = abs(action[2] - 100)
-        # reward += speed/100
+        speed = abs(action[2] - 100)
+        reward += speed/100
+        
+        #add score for punching
+        if action[0] == 1:
+            reward += 0.1
+            
+        #add score for jumping
+        if action[1] == 1:
+            reward += 0.1
+            
+        
         
         return self.get_observation(),reward,game_done,{} #  return observation, reward, done, info
 
@@ -144,8 +154,8 @@ class GameEnv(Env):
         screen_resized = cv2.resize(screenshot,(OBSERVATION_SHAPE[2],OBSERVATION_SHAPE[1]))
         
         if self.image_logging:
-            if self.image_logging_counter > 100:
-                cv2.imwrite(IMAGE_LOGGING_DIR+str(self.image_logging_last_name),screen_resized)
+            if self.image_logging_counter > 500:
+                cv2.imwrite(IMAGE_LOGGING_DIR+str(self.image_logging_last_name)+'.png',screen_resized)
                 self.image_logging_last_name += 1
                 self.image_logging_counter = 0
             self.image_logging_counter += 1
