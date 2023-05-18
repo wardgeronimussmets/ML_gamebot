@@ -10,6 +10,7 @@ import cv2
 import Trainer
 import ImageDisplay
 from WinnerSearcher import WinnerSearcher
+from ObjectDetection import ObjectDetector
 
 
 
@@ -68,7 +69,9 @@ class GameEnv(Env):
         
         self.image_logging_counter = 0
         self.image_logging_last_name = 0    
-        self.image_logging = image_logging    
+        self.image_logging = image_logging   
+        
+        self.distance_detector =  ObjectDetector()
         
     
     def update_player_colors(self,players):
@@ -102,6 +105,8 @@ class GameEnv(Env):
         self.gamepad.update_movement(self.discrete_to_continues(action[2]),self.discrete_to_continues(action[3]))
         self.gamepad.update_aim(self.discrete_to_continues(action[4]),self.discrete_to_continues(action[5]))
         
+        obs = self.get_observation()
+        
         winner = self.winner_searcher.next_scan()
         game_done = False
         reward = 0
@@ -110,16 +115,17 @@ class GameEnv(Env):
             game_done = True
             if self.player_color == winner:
                  #we won
-                reward = 1000
+                reward = 10000
                 print("AI bot of color",self.player_color,"won")
             else:
                 #we lost
                 reward = -50
                 print("Ai got destroyed")
             
-        #add score for movement
-        speed = abs(action[2] - 100)
-        reward += speed/100
+        #add score for distance between players
+        distance = self.distance_detector(obs)
+        print(distance)
+        reward += 1/distance
         
         #add score for punching
         if action[0] == 1:
@@ -131,7 +137,7 @@ class GameEnv(Env):
             
         
         
-        return self.get_observation(),reward,game_done,{} #  return observation, reward, done, info
+        return obs,reward,game_done,{} #  return observation, reward, done, info
 
         
     
