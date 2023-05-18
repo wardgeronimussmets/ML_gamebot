@@ -1,12 +1,17 @@
 import GamepadEmulator
 import time
 import random
+import msvcrt
 
 """The random player doesn't need to be good, it needs to provide random movement to train the bot on
 """
 
+def random_move(gamepad):
+    gamepad.update_movement(random.choice([-1,0,1]),random.choice([-1,0,1]))
+    time.sleep(random.randrange(1,100)/100)
 
-def random_input():
+
+def random_input(gamepad):
     #apply random movement, biased to the right
     horizontal_move = random.random()
     if horizontal_move > 0.6:
@@ -59,12 +64,23 @@ def random_input():
 if __name__=="__main__":
     gamepad = GamepadEmulator.GamePad()
     
-    while True:
-        #some to get activated
-        for x in range(0,3):
-            random_input()
-        print("waiting for other activation")
-        time.sleep(10)
+    #some to get activated
+    print("random bot starting in 3")
+    time.sleep(3)
+    print("the moose is loose")
+    running = True
+    while running:
+        random_input(gamepad)
+        if msvcrt.kbhit():
+            #pauzing to get everything fixed
+            print("pauzing give some random input to continue")
+            gamepad.update_movement(0,0)
+            action = input()
+            if action == "quit":
+                print("I will quit")
+                running = False
+            else:
+                print("Continuing to loose the moose")
         
         
         

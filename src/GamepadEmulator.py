@@ -9,7 +9,17 @@ THROW = vg.XUSB_BUTTON.XUSB_GAMEPAD_Y
 
 class GamePad():
     def __init__(self) -> None:
-        self.gamepad = vg.VX360Gamepad()
+        succeeded = False
+        for x in range(5):
+            try:
+                self.gamepad = vg.VX360Gamepad()
+                print("Succesfully started gamepad")
+                succeeded = True
+                break
+            except Exception as e:
+                print(e)
+        if not succeeded:
+            exit()
         self.blocking_action = None
         self.jumping = None
         

@@ -14,6 +14,7 @@ import GamepadEmulator
 import PlayerRecogniser
 import time
 import Environments
+import RandomBot
 
 CHECKPOINT_DIR = './train/'
 LOG_DIR = './logs/'
@@ -46,14 +47,14 @@ def load_new_bot():
         print("Already existing players are",previous_player_colors)
         gamepad = GamepadEmulator.GamePad()
         #random input so the player joins
-        for i in range(5):
-            gamepad.modulate_jump(True)
-            time.sleep(0.2)
-            gamepad.modulate_jump(False)
-            time.sleep(0.2)
-            gamepad.modulate_attack(True)
-            time.sleep(0.2)
-            gamepad.modulate_attack(False)
+        print("Starting random inputs")
+        for i in range(10):
+            RandomBot.random_input(gamepad)
+        print("done with random inputs")
+        gamepad.update_movement(-1,0)
+        time.sleep(1)
+        gamepad.update_movement(0,0)      
+            
 
         #wait for player to drop down in the map
         new_player_colors = PlayerRecogniser.recognize_once()
@@ -77,7 +78,7 @@ def load_new_bot():
             env = Environments.GameEnv(new_player,new_player_colors,gamepad,image_logging=True)
             print("Adding new bot with color", new_player)
             return env
-        print("Failed to add new bot")
+        print("Failed to add new bot couldn't detect one new player")
         gamepad.destroy()
     
     

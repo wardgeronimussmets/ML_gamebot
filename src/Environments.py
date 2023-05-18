@@ -1,5 +1,5 @@
 from gym import Env
-from gym.spaces import Box,Tuple,MultiDiscrete
+from gym.spaces import Box,Tuple,MultiDiscrete,Dict
 import numpy as np
 from mss import mss
 import ScreenGrabber
@@ -19,6 +19,7 @@ PIXEL_COLOR_DIFF_THRESHOLD = 0.3 #factor that it can deviate from the maximum
 WINNER_CHECKER_INTERVAL = 1.8
 OBSERVATION_SHAPE = (3,300,600)
 OBSERVATION_SHAPE_MASK = (3,150,300)
+PLAYER_COLOR_SPACE = (3,10,10)
 
 #model training
 CHECKPOINT_DIR = './train/'
@@ -39,7 +40,13 @@ class GameEnv(Env):
         #then a screencap masked with the players at a lower resolution
         #then it's own color -> hopefully it will learn that and can control multiple colors
         #this is flattened because of stable baselines
+        # self.observation_space = Dict({
+        #     "current_screen": Box(low=0, high=255, shape=OBSERVATION_SHAPE, dtype=np.uint8),
+        #     "previous_screen": Box(low=0, high=255, shape=OBSERVATION_SHAPE, dtype=np.uint8),
+        #     "own_color": Box(low=0, high=255, shape=PLAYER_COLOR_SPACE, dtype=np.uint8)
+        # })
         self.observation_space = Box(low=0, high=255, shape=OBSERVATION_SHAPE, dtype=np.uint8)
+        
         #action space:
         #   Discretes:
         #       0 -> No op
@@ -61,6 +68,7 @@ class GameEnv(Env):
         self.gamepad = virtual_gamepad
         
         self.player_color = player_colour
+        self.player_color_space = np.reshape(np.full((PLAYER_COLOR_SPACE[2],PLAYER_COLOR_SPACE[1],PLAYER_COLOR_SPACE[0]),self.player_color),PLAYER_COLOR_SPACE)
         self.player_colors = player_colours
         
         self.previous_screen = None
@@ -81,9 +89,6 @@ class GameEnv(Env):
     def discrete_to_continues(self,numb):
         return (numb - 100)/100
         
-    def observations_to_single_box(self,current_screen,previous_screen,player_mask,own_color):
-        combined = np.concatenate((current_screen,previous_screen,player_mask,own_color),axis=None)
-        return combined
         
     def step(self, action):
         if action[0] == 0:
@@ -105,7 +110,7 @@ class GameEnv(Env):
         self.gamepad.update_movement(self.discrete_to_continues(action[2]),self.discrete_to_continues(action[3]))
         self.gamepad.update_aim(self.discrete_to_continues(action[4]),self.discrete_to_continues(action[5]))
         
-        obs = self.get_observation()
+        obs,current_screen_normal_shape = self.get_observation()
         
         winner = self.winner_searcher.next_scan()
         game_done = False
@@ -123,27 +128,15 @@ class GameEnv(Env):
                 print("Ai got destroyed")
             
         #add score for distance between players
-        distance = self.distance_detector(obs)
-        print(distance)
+        try:
+            distance = self.distance_detector.get_player_distance(current_screen_normal_shape)
+        except Exception:
+            #fails if players are humping each other
+            distance = 0.5
         reward += 1/distance
-        
-        #add score for punching
-        if action[0] == 1:
-            reward += 0.1
             
-        #add score for jumping
-        if action[1] == 1:
-            reward += 0.1
-            
-        
-        
         return obs,reward,game_done,{} #  return observation, reward, done, info
-
-        
-    
-        
-            
-        
+  
     
     def render(self):
         #no need to render anything
@@ -151,7 +144,7 @@ class GameEnv(Env):
     
     def reset(self):
         #used to start a new episode, but that happens automatically -> no need
-        return self.get_observation()
+        return self.get_observation()[0]
     
     def get_observation(self):
         screenshot = ScreenGrabber.get_screenshot()
@@ -170,15 +163,18 @@ class GameEnv(Env):
         channel = np.reshape(screen_resized,OBSERVATION_SHAPE)
         # mask = PlayerRecogniser.get_players_mask(self.player_colors,screen_resized)
         
-        # if self.previous_screen is None:
-        #     self.previous_screen = screenshot
+        if self.previous_screen is None:
+            self.previous_screen = channel
         
-        # obs = self.observations_to_single_box(screenshot,self.previous_screen,mask,self.player_color)
-        # self.previous_screen = screenshot
+        self.previous_screen = channel
 
-        # print(obs.shape)
+        return channel,screen_resized
         
-        return channel
+        # return {
+        #     "current_screen": channel,
+        #     "previous_screen": self.previous_screen,
+        #     "own_color": self.player_color_space
+        # },screen_resized
     
 
 
