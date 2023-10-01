@@ -5,6 +5,8 @@ import ImageDisplay
 import ImagePreprocessing
 import random
 
+from GameScreenCapturer import screenCapturer
+
 
 MINIMAP_ZONE = (0.03,0.15,0.5,0.86)#format: left,right,top,bottom
 MINIMAP_COLORS = (105,118,116)
@@ -57,8 +59,7 @@ class NumberRecognizer():
         return mses.index(min(mses))
         
 
-if __name__ == "__main__":
-    
+def recognize_from_video():
     cap = cv2.VideoCapture('src/resources/game_footage.mkv')
     
     skip_first_frames = 2600
@@ -77,3 +78,16 @@ if __name__ == "__main__":
 
     cap.release()
     cv2.destroyAllWindows()
+
+
+def recognize_from_gameplay(screenshot):
+    get_speed(screenshot)
+
+def start_recognize_from_gameplay():
+    screenCap = screenCapturer.ScreenCapturer()
+    screenCap.start_capturing("FlatOut", recognize_from_gameplay)
+    
+
+if __name__ == "__main__":
+    start_recognize_from_gameplay()
+    

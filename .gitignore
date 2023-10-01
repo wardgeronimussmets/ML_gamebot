@@ -5,3 +5,4 @@ train
 yolov5
 image_logging
 src/resources/
+src/GameScreenCapturer
